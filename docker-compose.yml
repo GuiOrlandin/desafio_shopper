@@ -1,0 +1,30 @@
+version: "3"
+
+services:
+  db:
+    image: bitnami/postgresql
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRESQL_USERNAME=docker
+      - POSTGRESQL_PASSWORD=docker
+      - POSTGRESQL_DATABASE=desafio-shopper
+
+  prisma-migrate:
+    image: node:16
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: "postgresql://docker:docker@db:5432/desafioshopper?schema=public"
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: >
+      sh -c "
+      apt-get update && apt-get install -y postgresql-client &&
+      until pg_isready -h db -p 5432; do
+        echo 'Waiting for the database to be ready...';
+        sleep 2;
+      done;
+      npx prisma migrate deploy;
+      "

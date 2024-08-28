@@ -1,0 +1,27 @@
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+
+model Measurement {
+  measure_uuid             String   @id @default(uuid())
+  image_url          String
+  customer_code  String
+  measure_datetime DateTime
+  measure_value Int
+  measure_type   TYPE
+  has_confirmed     Boolean
+
+  @@map("Measurements")
+}
+
+
+enum TYPE {
+  WATER
+  GAS
+}
