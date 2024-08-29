@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import { IsString, IsNotEmpty, IsDate, IsEnum } from 'class-validator';
 
 enum MeasureType {
@@ -16,6 +17,7 @@ export class UploadImageBody {
 
   @IsDate()
   @IsNotEmpty()
+  @Type(() => Date)
   measure_datetime: Date;
 
   @IsEnum(MeasureType)

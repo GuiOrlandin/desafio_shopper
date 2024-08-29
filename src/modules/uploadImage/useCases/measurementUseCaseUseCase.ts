@@ -37,18 +37,11 @@ export class MeasurementUseCase {
       };
 
       const result = await model.generateContent([prompt, imagePart]);
-      console.log(result.response.text());
       let textValue = result.response.text();
 
-      const textValueReplaced = textValue.replace(/[\*\s]+/g, '');
+      const textValueReplaced = textValue.replace(/\*\*/g, '').trim();
 
-      console.log(textValueReplaced);
-      const textValueParts = result.response.text().split('R$');
-
-      textValue = textValue.replace(/\*\*/g, '').trim();
-      console.log(textValue);
-
-      const match = textValue.match(/(\d+[\.,]\d+)/);
+      const match = textValueReplaced.match(/(\d+[\.,]\d+)/);
 
       if (match) {
         const valueText = match[1].replace(',', '.');
@@ -62,8 +55,11 @@ export class MeasurementUseCase {
           measure_type,
           has_confirmed: false,
           image_url: '',
+          image,
           measure_value: intValue,
         });
+
+        await this.measurementRepository.createMeasurement(measurement);
 
         return {
           image_url: `http://localhost:3333/files/temporary/${fileName}`,

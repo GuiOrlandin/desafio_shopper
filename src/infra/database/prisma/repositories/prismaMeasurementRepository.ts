@@ -7,6 +7,7 @@ import { Measurement } from 'src/modules/uploadImage/entities/measurement';
 import { PrismaService } from '../prisma.service';
 import { TYPE } from '@prisma/client';
 import { PrismaMeasurementMapper } from '../mappers/prismaMeasurementMapper';
+import { MeasurementTypeAlreadyCreatedThisMonth } from 'src/modules/uploadImage/exceptions/MeasurementTypeAlreadyCreatedThisMonth';
 
 @Injectable()
 export class PrismaMeasurementRepository implements MeasurementRepository {
@@ -94,32 +95,35 @@ export class PrismaMeasurementRepository implements MeasurementRepository {
     });
 
     if (existingMeasurement) {
-      throw new Error('Leitura do mês já realizada');
+      throw new MeasurementTypeAlreadyCreatedThisMonth();
     }
 
-    const updateMeasurementIfExists = await this.prisma.measurement.findFirst({
-      where: {
-        customer_code: measurement.customer_code,
-        measure_type: measurement.measure_type as TYPE,
-        has_confirmed: false,
-        measure_datetime: {
-          gte: startOfMonth,
-          lte: endOfMonth,
+    const updateUnconfirmedMeasurementIfExists =
+      await this.prisma.measurement.findFirst({
+        where: {
+          customer_code: measurement.customer_code,
+          measure_type: measurement.measure_type as TYPE,
+          has_confirmed: false,
+          measure_datetime: {
+            gte: startOfMonth,
+            lte: endOfMonth,
+          },
         },
-      },
-    });
+      });
 
-    if (updateMeasurementIfExists) {
+    if (updateUnconfirmedMeasurementIfExists) {
       await this.prisma.measurement.update({
         data: measurementRaw,
         where: {
-          measure_uuid: measurementRaw.measure_uuid,
+          measure_uuid: updateUnconfirmedMeasurementIfExists.measure_uuid,
         },
       });
     }
 
-    await this.prisma.measurement.create({
-      data: measurementRaw,
-    });
+    if (!existingMeasurement && !updateUnconfirmedMeasurementIfExists) {
+      await this.prisma.measurement.create({
+        data: measurementRaw,
+      });
+    }
   }
 }

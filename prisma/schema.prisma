@@ -11,6 +11,7 @@ generator client {
 model Measurement {
   measure_uuid             String   @id @default(uuid())
   image_url          String
+  image    String
   customer_code  String
   measure_datetime DateTime
   measure_value Int

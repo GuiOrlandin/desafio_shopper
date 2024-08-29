@@ -8,6 +8,7 @@ export interface MeasurementSchema {
   measure_uuid?: string;
   has_confirmed?: boolean;
   measure_value?: number;
+  image?: string;
 }
 
 export class Measurement {
@@ -20,6 +21,7 @@ export class Measurement {
       measure_value: props.measure_value || 0,
       has_confirmed: props.has_confirmed || false,
       image_url: props.image_url || '',
+      image: props.image || '',
     };
   }
 
@@ -33,6 +35,13 @@ export class Measurement {
 
   set image_url(image_url: string) {
     this.props.image_url = image_url;
+  }
+  get image(): string {
+    return this.props.image;
+  }
+
+  set image(image: string) {
+    this.props.image = image;
   }
 
   get customer_code(): string {

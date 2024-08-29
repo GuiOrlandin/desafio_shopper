@@ -10,6 +10,7 @@ export class PrismaMeasurementMapper {
     measure_uuid,
     has_confirmed,
     measure_value,
+    image,
   }: Measurement): MeasurementRaw {
     return {
       customer_code,
@@ -19,6 +20,7 @@ export class PrismaMeasurementMapper {
       measure_uuid,
       has_confirmed,
       measure_value,
+      image,
     };
   }
 
@@ -30,6 +32,7 @@ export class PrismaMeasurementMapper {
     measure_uuid,
     has_confirmed,
     measure_value,
+    image,
   }: MeasurementRaw): Measurement {
     return new Measurement({
       customer_code,
@@ -39,6 +42,7 @@ export class PrismaMeasurementMapper {
       measure_uuid,
       has_confirmed,
       measure_value,
+      image,
     });
   }
 }
