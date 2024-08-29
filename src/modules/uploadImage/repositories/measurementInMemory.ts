@@ -2,11 +2,25 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { Measurement } from '../entities/measurement';
-import { MeasurementRepository } from './measurementRepository';
+import {
+  MeasurementRepository,
+  MeasurementResponse,
+} from './measurementRepository';
 import { MeasurementNotFound } from '../exceptions/measurementNotFound';
 import { MeasurementWIthInvalidData } from '../exceptions/measurementWIthInvalidData';
 
 export class UploadImageRepositoryInMemory implements MeasurementRepository {
+  getAllCustomerMeasurementsWithFilter(
+    customer_code: string,
+    type: string,
+  ): Promise<MeasurementResponse[]> {
+    throw new Error('Method not implemented.');
+  }
+  getAllCustomerMeasurements(
+    customer_code: string,
+  ): Promise<MeasurementResponse[]> {
+    throw new Error('Method not implemented.');
+  }
   public measurements: Measurement[] = [];
 
   async fileService(image: string): Promise<string> {

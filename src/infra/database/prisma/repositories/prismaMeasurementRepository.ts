@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { MeasurementRepository } from 'src/modules/uploadImage/repositories/measurementRepository';
+import {
+  MeasurementRepository,
+  MeasurementResponse,
+} from 'src/modules/uploadImage/repositories/measurementRepository';
 import { Measurement } from 'src/modules/uploadImage/entities/measurement';
 import { PrismaService } from '../prisma.service';
 import { TYPE } from '@prisma/client';
@@ -43,11 +46,8 @@ export class PrismaMeasurementRepository implements MeasurementRepository {
       const interval = setInterval(() => {
         const timer = Date.now() - start;
         if (timer >= delay) {
-          console.log(`Attempting to delete file: ${fileName}`);
           deleteFile(fileName);
           clearInterval(interval);
-        } else {
-          console.log(`Still waiting to delete file: ${fileName}`);
         }
       }, 10000);
     }
@@ -171,14 +171,11 @@ export class PrismaMeasurementRepository implements MeasurementRepository {
 
     const uploadsDir = path.join(process.cwd(), 'uploads');
     const fileName = `${uuidv4()}.jpg`;
-
     const filePath = path.join(uploadsDir, fileName);
-
     const imageBase64 = measurementUnmodified.image.replace(
       /^data:image\/\w+;base64,/,
       '',
     );
-
     const buffer = Buffer.from(imageBase64, 'base64');
     fs.writeFileSync(filePath, buffer);
 
@@ -224,5 +221,65 @@ export class PrismaMeasurementRepository implements MeasurementRepository {
     });
 
     return true;
+  }
+
+  async getAllCustomerMeasurements(
+    customer_code: string,
+  ): Promise<MeasurementResponse[]> {
+    const allMeasurement = await this.prisma.measurement.findMany({
+      where: {
+        customer_code: {
+          equals: customer_code,
+          mode: 'insensitive',
+        },
+      },
+    });
+
+    if (!allMeasurement || allMeasurement.length === 0) {
+      throw new MeasurementNotFound();
+    }
+
+    const mappedMeasurements: MeasurementResponse[] = allMeasurement.map(
+      (measurement) => ({
+        measure_uuid: measurement.measure_uuid,
+        measure_datetime: measurement.measure_datetime.toISOString(),
+        has_confirmed: measurement.has_confirmed,
+        image_url: measurement.image_url,
+        measure_type: measurement.measure_type,
+      }),
+    );
+
+    return mappedMeasurements;
+  }
+
+  async getAllCustomerMeasurementsWithFilter(
+    customer_code: string,
+    type: string,
+  ): Promise<MeasurementResponse[]> {
+    const allMeasurement = await this.prisma.measurement.findMany({
+      where: {
+        customer_code: {
+          equals: customer_code,
+          mode: 'insensitive',
+        },
+        measure_type: type as TYPE,
+      },
+    });
+
+    if (!allMeasurement || allMeasurement.length === 0) {
+      throw new MeasurementNotFound();
+    }
+
+    const mappedMeasurements: MeasurementResponse[] = allMeasurement.map(
+      (measurement) => ({
+        measure_uuid: measurement.measure_uuid,
+        measure_datetime: measurement.measure_datetime.toISOString(),
+        has_confirmed: measurement.has_confirmed,
+        image_url: measurement.image_url,
+        measure_type: measurement.measure_type,
+      }),
+    );
+
+    return mappedMeasurements;
   }
 }
