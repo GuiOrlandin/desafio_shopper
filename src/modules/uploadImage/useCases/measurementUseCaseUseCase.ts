@@ -54,7 +54,7 @@ export class MeasurementUseCase {
           measure_datetime: measurementDate,
           measure_type,
           has_confirmed: false,
-          image_url: '',
+          image_url: `http://localhost:3333/files/temporary/${fileName}`,
           image,
           measure_value: intValue,
         });
@@ -62,7 +62,7 @@ export class MeasurementUseCase {
         await this.measurementRepository.createMeasurement(measurement);
 
         return {
-          image_url: `http://localhost:3333/files/temporary/${fileName}`,
+          image_url: measurement.image_url,
           measure_value: intValue,
           measure_uuid: measurement.measure_uuid,
         };

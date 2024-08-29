@@ -3,6 +3,8 @@ import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { Measurement } from '../entities/measurement';
 import { MeasurementRepository } from './measurementRepository';
+import { MeasurementNotFound } from '../exceptions/measurementNotFound';
+import { MeasurementWIthInvalidData } from '../exceptions/measurementWIthInvalidData';
 
 export class UploadImageRepositoryInMemory implements MeasurementRepository {
   public measurements: Measurement[] = [];
@@ -47,5 +49,51 @@ export class UploadImageRepositoryInMemory implements MeasurementRepository {
 
   async createMeasurement(measurement: Measurement): Promise<void> {
     await this.measurements.push(measurement);
+  }
+
+  async findMeasurementByUuid(measurement_uuid: string): Promise<Measurement> {
+    const measurement = this.measurements.find(
+      (measurement) => measurement.measure_uuid === measurement_uuid,
+    );
+
+    if (!measurement) {
+      return null;
+    }
+
+    return measurement;
+  }
+
+  async measurementSave(measurement: Measurement): Promise<boolean> {
+    const measurementIndex = this.measurements.findIndex(
+      (currentMeasurement) =>
+        currentMeasurement.measure_uuid === measurement.measure_uuid,
+    );
+
+    if (!measurementIndex) {
+      throw new MeasurementNotFound();
+    }
+
+    if (measurementIndex >= 0) {
+      this.measurements[measurementIndex] = measurement;
+    }
+
+    return true;
+  }
+
+  async checkMeasureValue(
+    measurement: Measurement,
+    measure_value: number,
+  ): Promise<boolean> {
+    const measurementRaw = this.measurements.find(
+      (measurement) => measurement.measure_uuid === measurement.measure_uuid,
+    );
+
+    if (measurementRaw.measure_value !== measurement.measure_value) {
+      throw new MeasurementWIthInvalidData();
+    }
+
+    measurementRaw.measure_value = measure_value;
+
+    return true;
   }
 }

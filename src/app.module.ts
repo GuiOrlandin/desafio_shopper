@@ -11,6 +11,10 @@ import { MeasurementModule } from './infra/http/modules/uploadImage/measurement.
       serveRoot: '/files/temporary',
     }),
 
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'uploads'),
+      serveRoot: '/files/uploads',
+    }),
     ConfigModule.forRoot(),
     MeasurementModule,
   ],

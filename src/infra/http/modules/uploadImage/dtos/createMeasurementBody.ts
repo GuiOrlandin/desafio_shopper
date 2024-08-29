@@ -6,7 +6,7 @@ enum MeasureType {
   GAS = 'GAS',
 }
 
-export class UploadImageBody {
+export class CreateMeasurementBody {
   @IsString()
   @IsNotEmpty()
   customer_code: string;

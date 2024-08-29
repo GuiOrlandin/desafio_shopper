@@ -1,13 +1,6 @@
-import {
-  Body,
-  Controller,
-  Post,
-  UploadedFile,
-  UseInterceptors,
-} from '@nestjs/common';
-import { UploadImageBody } from './dtos/uploadImageBody';
+import { Body, Controller, Post, UseInterceptors } from '@nestjs/common';
 import { MeasurementUseCase } from 'src/modules/uploadImage/useCases/measurementUseCaseUseCase';
-import { MeasurementWIthInvalidData } from 'src/modules/uploadImage/exceptions/measurementWIthInvalidData';
+import { CreateMeasurementBody } from './dtos/createMeasurementBody';
 
 @Controller('upload')
 export class MeasurementController {
@@ -15,7 +8,7 @@ export class MeasurementController {
 
   @Post()
   @UseInterceptors()
-  async UploadImage(@Body() body: UploadImageBody) {
+  async UploadImage(@Body() body: CreateMeasurementBody) {
     const { image, customer_code, measure_datetime, measure_type } = body;
 
     const result = await this.measurementUseCase.execute({

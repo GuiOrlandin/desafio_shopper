@@ -8,10 +8,27 @@ import { PrismaService } from '../prisma.service';
 import { TYPE } from '@prisma/client';
 import { PrismaMeasurementMapper } from '../mappers/prismaMeasurementMapper';
 import { MeasurementTypeAlreadyCreatedThisMonth } from 'src/modules/uploadImage/exceptions/MeasurementTypeAlreadyCreatedThisMonth';
+import { MeasurementNotFound } from 'src/modules/uploadImage/exceptions/measurementNotFound';
+import { MeasurementAlreadyConfirmed } from 'src/modules/uploadImage/exceptions/MeasurementAlreadyConfirmed';
+import { MeasurementWIthInvalidData } from 'src/modules/uploadImage/exceptions/measurementWIthInvalidData';
 
 @Injectable()
 export class PrismaMeasurementRepository implements MeasurementRepository {
   constructor(private prisma: PrismaService) {}
+
+  async findMeasurementByUuid(measurement_uuid: string): Promise<Measurement> {
+    const measurement = await this.prisma.measurement.findFirst({
+      where: {
+        measure_uuid: measurement_uuid,
+      },
+    });
+
+    if (!measurement) {
+      return null;
+    }
+
+    return PrismaMeasurementMapper.toDomain(measurement);
+  }
 
   async fileService(image: string): Promise<string> {
     function isBase64(image: string): Boolean {
@@ -45,19 +62,14 @@ export class PrismaMeasurementRepository implements MeasurementRepository {
     }
 
     if (isBase64(image)) {
-      const uploadsDir = path.join(process.cwd(), 'uploads');
-      const tempDir = path.join(uploadsDir, 'temporary');
+      const tempDir = path.join(process.cwd(), 'uploads', 'temporary');
 
       const fileName = `${uuidv4()}.jpg`;
       const filePath = path.join(tempDir, fileName);
 
-      console.log('Saving file to:', filePath);
-
       const imageBase64 = image.replace(/^data:image\/\w+;base64,/, '');
       const buffer = Buffer.from(imageBase64, 'base64');
       fs.writeFileSync(filePath, buffer);
-
-      console.log('File saved successfully');
 
       deleteFileAfterInterval(fileName, 600000);
 
@@ -125,5 +137,92 @@ export class PrismaMeasurementRepository implements MeasurementRepository {
         data: measurementRaw,
       });
     }
+  }
+
+  async measurementSave(measurement: Measurement): Promise<boolean> {
+    const measurementUnmodified = await this.prisma.measurement.findFirst({
+      where: {
+        measure_uuid: measurement.measure_uuid,
+      },
+    });
+
+    if (!measurementUnmodified) {
+      throw new MeasurementNotFound();
+    }
+
+    if (measurementUnmodified.has_confirmed === true) {
+      throw new MeasurementAlreadyConfirmed();
+    }
+
+    if (measurementUnmodified.image_url !== '') {
+      const tempDir = path.join(process.cwd(), 'uploads', 'temporary');
+      const parts = measurementUnmodified.image_url.split('temporary/');
+      const fileName = parts[1];
+      const filePath = path.join(tempDir, fileName);
+
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.error(`Error: ${err}`);
+        } else {
+          console.log(`File ${filePath} deleted.`);
+        }
+      });
+    }
+
+    const uploadsDir = path.join(process.cwd(), 'uploads');
+    const fileName = `${uuidv4()}.jpg`;
+
+    const filePath = path.join(uploadsDir, fileName);
+
+    const imageBase64 = measurementUnmodified.image.replace(
+      /^data:image\/\w+;base64,/,
+      '',
+    );
+
+    const buffer = Buffer.from(imageBase64, 'base64');
+    fs.writeFileSync(filePath, buffer);
+
+    await this.prisma.measurement.update({
+      data: {
+        ...measurementUnmodified,
+        image: '',
+        has_confirmed: true,
+        image_url: `http://localhost:3333/files/uploads/${fileName}`,
+      },
+
+      where: {
+        measure_uuid: measurement.measure_uuid,
+      },
+    });
+
+    return true;
+  }
+
+  async checkMeasureValue(
+    measurement: Measurement,
+    measure_value: number,
+  ): Promise<boolean> {
+    const measurementRaw = await this.prisma.measurement.findFirst({
+      where: {
+        measure_uuid: measurement.measure_uuid,
+      },
+    });
+
+    if (measurementRaw.measure_value !== measure_value) {
+      throw new MeasurementWIthInvalidData();
+    }
+
+    await this.prisma.measurement.update({
+      data: {
+        ...measurementRaw,
+        measure_value: measure_value,
+      },
+
+      where: {
+        measure_uuid: measurement.measure_uuid,
+      },
+    });
+
+    return true;
   }
 }
