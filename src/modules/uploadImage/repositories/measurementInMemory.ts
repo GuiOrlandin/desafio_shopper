@@ -2,26 +2,55 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { Measurement } from '../entities/measurement';
-import {
-  MeasurementRepository,
-  MeasurementResponse,
-} from './measurementRepository';
+import { MeasurementRepository } from './measurementRepository';
 import { MeasurementNotFound } from '../exceptions/measurementNotFound';
 import { MeasurementWIthInvalidData } from '../exceptions/measurementWIthInvalidData';
 
-export class UploadImageRepositoryInMemory implements MeasurementRepository {
-  getAllCustomerMeasurementsWithFilter(
-    customer_code: string,
-    type: string,
-  ): Promise<MeasurementResponse[]> {
-    throw new Error('Method not implemented.');
-  }
-  getAllCustomerMeasurements(
-    customer_code: string,
-  ): Promise<MeasurementResponse[]> {
-    throw new Error('Method not implemented.');
-  }
+export class MeasurementRepositoryInMemory implements MeasurementRepository {
   public measurements: Measurement[] = [];
+
+  async getAllCustomerMeasurements(customer_code: string) {
+    const allMeasurements = this.measurements.filter(
+      (measurement) =>
+        measurement.customer_code.toLowerCase() === customer_code.toLowerCase(),
+    );
+
+    if (allMeasurements.length === 0) {
+      throw new Error('MeasurementNotFound');
+    }
+
+    const mappedMeasurements = allMeasurements.map((measurement) => ({
+      measure_uuid: measurement.measure_uuid,
+      measure_datetime: new Date(measurement.measure_datetime).toISOString(),
+      has_confirmed: measurement.has_confirmed,
+      image_url: measurement.image_url,
+      measure_type: measurement.measure_type,
+    }));
+
+    return mappedMeasurements;
+  }
+
+  async getAllCustomerMeasurementsWithFilter(customer_code, type) {
+    const allMeasurements = this.measurements.filter(
+      (measurement) =>
+        measurement.customer_code.toLowerCase() ===
+          customer_code.toLowerCase() && measurement.measure_type === type,
+    );
+
+    if (allMeasurements.length === 0) {
+      throw new Error('MeasurementNotFound');
+    }
+
+    const mappedMeasurements = allMeasurements.map((measurement) => ({
+      measure_uuid: measurement.measure_uuid,
+      measure_datetime: new Date(measurement.measure_datetime).toISOString(),
+      has_confirmed: measurement.has_confirmed,
+      image_url: measurement.image_url,
+      measure_type: measurement.measure_type,
+    }));
+
+    return mappedMeasurements;
+  }
 
   async fileService(image: string): Promise<string> {
     function isBase64(image: string): Boolean {
@@ -62,7 +91,7 @@ export class UploadImageRepositoryInMemory implements MeasurementRepository {
   }
 
   async createMeasurement(measurement: Measurement): Promise<void> {
-    await this.measurements.push(measurement);
+    this.measurements.push(measurement);
   }
 
   async findMeasurementByUuid(measurement_uuid: string): Promise<Measurement> {
@@ -83,13 +112,11 @@ export class UploadImageRepositoryInMemory implements MeasurementRepository {
         currentMeasurement.measure_uuid === measurement.measure_uuid,
     );
 
-    if (!measurementIndex) {
+    if (measurementIndex === -1) {
       throw new MeasurementNotFound();
     }
 
-    if (measurementIndex >= 0) {
-      this.measurements[measurementIndex] = measurement;
-    }
+    this.measurements[measurementIndex] = measurement;
 
     return true;
   }
@@ -99,10 +126,15 @@ export class UploadImageRepositoryInMemory implements MeasurementRepository {
     measure_value: number,
   ): Promise<boolean> {
     const measurementRaw = this.measurements.find(
-      (measurement) => measurement.measure_uuid === measurement.measure_uuid,
+      (measurementSaved) =>
+        measurementSaved.measure_uuid === measurement.measure_uuid,
     );
 
-    if (measurementRaw.measure_value !== measurement.measure_value) {
+    if (!measurementRaw) {
+      throw new MeasurementNotFound();
+    }
+
+    if (measurementRaw.measure_value !== measure_value) {
       throw new MeasurementWIthInvalidData();
     }
 

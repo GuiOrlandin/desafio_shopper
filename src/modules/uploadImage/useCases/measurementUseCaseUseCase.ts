@@ -67,7 +67,7 @@ export class MeasurementUseCase {
           measure_uuid: measurement.measure_uuid,
         };
       } else {
-        console.log("Não foi encontrado 'R$' no texto.");
+        console.log('Não foi encontrado o valor na imagem.');
       }
     }
   }
